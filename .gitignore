@@ -1,0 +1,40 @@
+# Terraform
+# Provider binaries and vendored modules - re-created by `terraform init`.
+**/.terraform/*
+
+# State contains resource IDs and can contain secrets. Keep it out of git;
+# move it to an S3 backend before more than one person runs apply.
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+crash.log
+crash.*.log
+
+# Saved plans can embed variable values.
+*.tfplan
+*tfplan*
+
+# terraform.tfvars IS committed - it holds no secrets, only this deployment's
+# settings, and credentials come from AWS_PROFILE. Anything matching the names
+# below is for local overrides and secrets, so it stays out.
+*.auto.tfvars
+*secret*.tfvars
+*local*.tfvars
+
+# Terraform CLI config may hold credentials.
+.terraformrc
+terraform.rc
+
+# Credentials / secrets
+.env
+.env.*
+*.pem
+*.key
+
+# OS / editor
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+.vscode/
+.idea/
