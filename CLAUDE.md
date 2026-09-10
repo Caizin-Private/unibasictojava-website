@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Terraform workflow
 
-Always pass both `-backend-config` and `-var-file`. `ENV` defaults to `prod` in the Makefile because `prod` is currently the only environment, but set it explicitly anyway.
+Always pass both `-backend-config` and `-var-file` — there is no default environment. `ENV` defaults to `dev` in the Makefile, but `dev` does not exist in this repo; `prod` is the only environment, so always pass `ENV=prod` explicitly.
 
 `AWS_PROFILE` must be set in the shell before running any `make` or `terraform` command — it is not managed by the Makefile.
 
@@ -36,7 +36,6 @@ This repo holds both the site and the infrastructure that serves it.
 | Path | Purpose |
 | --- | --- |
 | `site/` | The site itself — a single self-contained `index.html`. No build step. |
-| `scripts/` | `deploy.ps1` / `deploy.cmd` — sync `site/` to S3, invalidate CloudFront. |
 | `environments/<env>/` | `backend.hcl` (remote state) and `terraform.tfvars` (per-env inputs). |
 | `*.tf` | Root module. There are no local modules; everything is `terraform-aws-modules`. |
 
@@ -53,7 +52,7 @@ Cache behaviour is deliberately split in two:
 | `/index.html` | `Managed-CachingDisabled` | The entrypoint must revalidate, or a deploy keeps serving stale asset references. |
 | everything else | `Managed-CachingOptimized` | Fingerprinted assets are immutable and cache for a year. |
 
-`scripts/deploy.ps1` mirrors this split with two `aws s3 sync` passes setting different `Cache-Control` headers, then invalidates `/*`.
+Publishing must mirror this split: two `aws s3 sync` passes setting different `Cache-Control` headers, then an invalidation. The commands are in `README.md` under "Publishing the site". There is no deploy script — uploading in a single pass is the one mistake that reliably breaks a release, because a cached `index.html` keeps referencing asset filenames that no longer exist.
 
 ## Custom domain
 

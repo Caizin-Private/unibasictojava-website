@@ -1,10 +1,9 @@
-ENV        ?= prod
+ENV        ?= dev
 BACKEND     = environments/$(ENV)/backend.hcl
 TFVARS      = environments/$(ENV)/terraform.tfvars
 PLAN_FILE   = tfplan
-SITE_DIR   ?= site
 
-.PHONY: init fmt validate plan apply destroy scan deploy
+.PHONY: init fmt validate plan apply destroy scan
 
 init:
 	terraform init -backend-config=$(BACKEND) -reconfigure
@@ -27,8 +26,3 @@ destroy: init
 scan:
 	checkov -d . --framework terraform --quiet
 	trivy config . --severity HIGH,CRITICAL
-
-# Publishes $(SITE_DIR) to S3 and invalidates CloudFront. Reads the bucket and
-# distribution id from terraform outputs, so `apply` must have run first.
-deploy:
-	powershell -ExecutionPolicy Bypass -File scripts/deploy.ps1 -SitePath $(SITE_DIR)

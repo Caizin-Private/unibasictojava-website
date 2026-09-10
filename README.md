@@ -12,7 +12,6 @@ CloudFront, S3 and ACM modules.
 ```
 .
 ├── site/                       the site - a single self-contained index.html
-├── scripts/                    deploy.ps1 / deploy.cmd - S3 sync + invalidation
 ├── environments/
 │   └── prod/
 │       ├── backend.hcl         remote state config
@@ -67,6 +66,9 @@ unchanged in CI, where a GitHub Actions OIDC role supplies the credentials.
 
 ## Usage
 
+`ENV` defaults to `dev` in the Makefile, which does not exist here — always pass
+`ENV=prod` explicitly.
+
 ```bash
 export AWS_PROFILE=<sso-profile>
 
@@ -77,16 +79,33 @@ make fmt
 make scan               # checkov + trivy
 ```
 
-Then publish the site:
+## Publishing the site
 
-```
-scripts\deploy.cmd
+Upload in two passes, because the two file classes need different cache
+headers. Getting this wrong is the one deploy mistake that bites: a cached
+`index.html` keeps pointing at asset filenames that no longer exist.
+
+```bash
+BUCKET=$(terraform output -raw site_bucket_name)
+DIST_ID=$(terraform output -raw cloudfront_distribution_id)
+
+# 1. Assets - fingerprinted, so immutable for a year.
+aws s3 sync site "s3://$BUCKET" --delete \
+  --cache-control "public,max-age=31536000,immutable" \
+  --exclude "*.html" --exclude "*.json" --exclude "*.xml" --exclude "*.txt"
+
+# 2. Entrypoints and metadata - must revalidate on every request.
+aws s3 sync site "s3://$BUCKET" --delete \
+  --cache-control "public,max-age=0,must-revalidate" \
+  --exclude "*" \
+  --include "*.html" --include "*.json" --include "*.xml" --include "*.txt"
+
+# 3. Drop the edge cache.
+aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*"
 ```
 
-`scripts\deploy.ps1` is the PowerShell equivalent; both do the same two-pass
-upload and invalidation. Assets get a one-year immutable cache; `.html`, `.json`,
-`.xml` and `.txt` get `must-revalidate` so a deploy never serves stale
-references.
+This mirrors the split cache behaviour configured on the distribution — see
+`ordered_cache_behavior` in `main.tf`.
 
 ## Running without a custom domain
 
