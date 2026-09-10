@@ -1,19 +1,26 @@
-variable "project_name" {
-  description = "Short name used to prefix resource names."
+variable "project" {
+  description = "Project name. Combined with environment to prefix resource names and tags."
   type        = string
-  default     = "unicode-to-java"
+}
+
+variable "environment" {
+  description = "Environment name, e.g. prod. Combined with project to prefix resource names and tags."
+  type        = string
+}
+
+variable "owner" {
+  description = "Team accountable for these resources. Applied as the Owner tag."
+  type        = string
+}
+
+variable "cost_center" {
+  description = "Billing attribution. Applied as the CostCenter tag."
+  type        = string
 }
 
 variable "aws_region" {
   description = "Region for the S3 bucket. CloudFront is global; the ACM cert is always created in us-east-1."
   type        = string
-  default     = "ap-south-1"
-}
-
-variable "aws_profile" {
-  description = "Named profile from ~/.aws/config, typically an SSO profile. Leave null to use the default credential chain, which is what CI with OIDC should do."
-  type        = string
-  default     = null
 }
 
 variable "domain_name" {
@@ -44,6 +51,11 @@ variable "price_class" {
   description = "PriceClass_100 (NA + EU), PriceClass_200 (adds Asia), or PriceClass_All."
   type        = string
   default     = "PriceClass_100"
+
+  validation {
+    condition     = contains(["PriceClass_100", "PriceClass_200", "PriceClass_All"], var.price_class)
+    error_message = "price_class must be PriceClass_100, PriceClass_200 or PriceClass_All."
+  }
 }
 
 variable "enable_logging" {
@@ -56,13 +68,4 @@ variable "force_destroy" {
   description = "Allow terraform destroy to delete a non-empty site bucket. Handy for dev, dangerous for prod."
   type        = bool
   default     = false
-}
-
-variable "tags" {
-  description = "Tags applied to every resource."
-  type        = map(string)
-  default = {
-    Project   = "UnicodeToJavaWebsite"
-    ManagedBy = "Terraform"
-  }
 }

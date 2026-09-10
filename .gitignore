@@ -1,40 +1,39 @@
-# Terraform
-# Provider binaries and vendored modules - re-created by `terraform init`.
-**/.terraform/*
+# Local .terraform directories
+.terraform/
 
-# State contains resource IDs and can contain secrets. Keep it out of git;
-# move it to an S3 backend before more than one person runs apply.
+# .tfstate files
 *.tfstate
 *.tfstate.*
-*.tfstate.backup
+
+# Crash log files
 crash.log
 crash.*.log
 
-# Saved plans can embed variable values.
-*.tfplan
-*tfplan*
+# Exclude all .tfvars files, which are likely to contain sensitive data, such as
+# password, private keys, and other secrets. These should not be part of version
+# control as they are data points which are potentially sensitive and subject
+# to change depending on the environment.
+*.tfvars.json
 
-# terraform.tfvars IS committed - it holds no secrets, only this deployment's
-# settings, and credentials come from AWS_PROFILE. Anything matching the names
-# below is for local overrides and secrets, so it stays out.
-*.auto.tfvars
-*secret*.tfvars
-*local*.tfvars
+# Ignore override files as they are usually used to override resources locally and so
+# are not checked in
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
 
-# Terraform CLI config may hold credentials.
+# Ignore transient lock info files created by terraform apply
+.terraform.tfstate.lock.info
+
+# Include override files you do wish to add to version control using negated pattern
+# !example_override.tf
+
+# Include tfplan files to ignore the plan output of command: terraform plan -out=tfplan
+# example: *tfplan*
+
+# Ignore CLI configuration files
 .terraformrc
 terraform.rc
-
-# Credentials / secrets
+tfplan
 .env
-.env.*
-*.pem
-*.key
-
-# OS / editor
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-.DS_Store
-.vscode/
-.idea/
+.mcp.json

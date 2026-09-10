@@ -1,14 +1,14 @@
 @echo off
 REM Publish the built site to S3 and invalidate the CloudFront cache.
-REM Usage:  scripts\deploy.cmd [dist-folder]     (run from the project root)
+REM Usage:  scripts\deploy.cmd [site-folder]     (run from the project root)
 
 setlocal
 
-set "DIST=%~1"
-if "%DIST%"=="" set "DIST=dist"
+set "SITE=%~1"
+if "%SITE%"=="" set "SITE=site"
 
-if not exist "%DIST%" (
-  echo ERROR: build output not found at "%DIST%".
+if not exist "%SITE%" (
+  echo ERROR: site content not found at "%SITE%".
   exit /b 1
 )
 
@@ -21,8 +21,8 @@ if errorlevel 1 (
   exit /b 1
 )
 
-for /f "delims=" %%i in ('terraform -chdir=terraform output -raw site_bucket_name') do set "BUCKET=%%i"
-for /f "delims=" %%i in ('terraform -chdir=terraform output -raw cloudfront_distribution_id') do set "DISTID=%%i"
+for /f "delims=" %%i in ('terraform output -raw site_bucket_name') do set "BUCKET=%%i"
+for /f "delims=" %%i in ('terraform output -raw cloudfront_distribution_id') do set "DISTID=%%i"
 
 if "%BUCKET%"=="" (
   echo ERROR: could not read terraform outputs. Has "terraform apply" run?
@@ -35,7 +35,7 @@ echo.
 
 REM Fingerprinted assets are immutable, so they get a one-year cache.
 echo [1/3] Uploading assets...
-aws s3 sync "%DIST%" "s3://%BUCKET%" --delete ^
+aws s3 sync "%SITE%" "s3://%BUCKET%" --delete ^
   --cache-control "public,max-age=31536000,immutable" ^
   --exclude "*.html" --exclude "*.json" --exclude "*.xml" --exclude "*.txt"
 if errorlevel 1 exit /b 1
@@ -43,7 +43,7 @@ if errorlevel 1 exit /b 1
 REM Entrypoints must revalidate every time, otherwise a deploy keeps serving
 REM stale references to the previous asset filenames.
 echo [2/3] Uploading entrypoints...
-aws s3 sync "%DIST%" "s3://%BUCKET%" --delete ^
+aws s3 sync "%SITE%" "s3://%BUCKET%" --delete ^
   --cache-control "public,max-age=0,must-revalidate" ^
   --exclude "*" ^
   --include "*.html" --include "*.json" --include "*.xml" --include "*.txt"
@@ -53,7 +53,7 @@ echo [3/3] Invalidating CloudFront cache...
 for /f "delims=" %%i in ('aws cloudfront create-invalidation --distribution-id %DISTID% --paths "/*" --query "Invalidation.Id" --output text') do set "INVAL=%%i"
 echo Invalidation: %INVAL%
 
-for /f "delims=" %%i in ('terraform -chdir=terraform output -raw site_url') do set "URL=%%i"
+for /f "delims=" %%i in ('terraform output -raw site_url') do set "URL=%%i"
 echo.
 echo Deployed: %URL%
 

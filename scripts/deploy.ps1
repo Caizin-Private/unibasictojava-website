@@ -3,19 +3,19 @@
   Publish the built site to S3 and invalidate the CloudFront cache.
 
 .EXAMPLE
-  .\scripts\deploy.ps1 -Profile unicode-to-java
+  .\scripts\deploy.ps1
 #>
 [CmdletBinding()]
 param(
-    [string]$DistPath = "./dist",
-    [string]$TerraformDir = "./terraform",
+    [string]$SitePath = "./site",
+    [string]$TerraformDir = ".",
     [string]$Profile = $env:AWS_PROFILE
 )
 
 $ErrorActionPreference = "Stop"
 
-if (-not (Test-Path $DistPath)) {
-    throw "Build output not found at $DistPath. Run your build first."
+if (-not (Test-Path $SitePath)) {
+    throw "Site content not found at $SitePath."
 }
 
 # Every aws call takes the same profile flag, or none when running under a role.
@@ -42,7 +42,7 @@ Write-Host "Distribution: $distId"
 
 # Fingerprinted assets are immutable, so they get a one-year cache. Everything
 # matched here is excluded from the second pass below.
-aws s3 sync $DistPath "s3://$bucket" @awsArgs `
+aws s3 sync $SitePath "s3://$bucket" @awsArgs `
     --delete `
     --cache-control "public,max-age=31536000,immutable" `
     --exclude "*.html" `
@@ -52,7 +52,7 @@ aws s3 sync $DistPath "s3://$bucket" @awsArgs `
 
 # Entrypoints and metadata must revalidate on every request, otherwise a deploy
 # keeps serving stale references to the old asset filenames.
-aws s3 sync $DistPath "s3://$bucket" @awsArgs `
+aws s3 sync $SitePath "s3://$bucket" @awsArgs `
     --delete `
     --cache-control "public,max-age=0,must-revalidate" `
     --exclude "*" `

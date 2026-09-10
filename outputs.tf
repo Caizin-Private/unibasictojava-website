@@ -1,5 +1,5 @@
 output "site_bucket_name" {
-  description = "Bucket that holds the built site. Sync your dist/ folder here."
+  description = "Bucket that holds the site. Sync the site/ folder here."
   value       = module.site_bucket.s3_bucket_id
 }
 
